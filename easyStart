@@ -3,6 +3,11 @@ esp32_ble_tracker:
 ble_client:
   - mac_address: "XX:XX:XX:XX:XX:XX" #Change to the easystart mac
     id: ble_client_1
+
+text_sensor:
+  - platform: template
+    name: "Status"
+    id: status
             
 sensor:
   - platform: template
@@ -99,6 +104,17 @@ sensor:
                 uint32_t total_starts = data[14] + (data[15] << 8) + (data[16] << 16) + (data[17] << 24);
                 ESP_LOGD("ble_client", "Total Starts: %u", total_starts);
                 id(total_starts_sen).publish_state(total_starts);
+
+                // Extract and log Status Text
+                uint8_t status_index = data[0] & 0xFF;
+                const char* status_text[] = {"Normal", "Unexpctd Curr Flt", "Short Cycle Delay", "Pwr Intrrptn Fault", "Stall Fault", "Stuck SR Fault", "Open Ovrld Fault", "Overcurrent Fault", "Bad Wiring Fault", "Wrong Voltage Flt"};
+                if (status_index < sizeof(status_text) / sizeof(status_text[0])) {
+                    ESP_LOGD("ble_client", "Status: %s", status_text[status_index]);
+                    id(status).publish_state(status_text[status_index]);
+                } else {
+                    ESP_LOGD("ble_client", "Status: Unknown (%u)", status_index);
+                    id(status).publish_state("Unknown");
+                }
             } else {
                 ESP_LOGD("ble_client", "Data Response is too short to extract all values");
             }
