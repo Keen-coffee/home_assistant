@@ -53,6 +53,20 @@ sensor:
     update_interval: never
     notify: True
     lambda: |-
+
+        std::vector<std::string> statusText = {
+            "Normal",
+            "Unexpected Curr Flt",
+            "Short Cycle Delay",
+            "Pwr Intrrptn Fault",
+            "Stall Fault",
+            "Stuck SR Fault",
+            "Open Ovrld Fault",
+            "Overcurrent Fault",
+            "Bad Wiring Fault",
+            "Wrong Voltage Flt"
+        };
+        
         uint8_t* data = (uint8_t*) x.data();
         size_t length = x.size();
 
@@ -106,15 +120,16 @@ sensor:
                 id(total_starts_sen).publish_state(total_starts);
 
                 // Extract and log Status Text
-                uint8_t status_index = data[0] & 0xFF;
-                const char* status_text[] = {"Normal", "Unexpctd Curr Flt", "Short Cycle Delay", "Pwr Intrrptn Fault", "Stall Fault", "Stuck SR Fault", "Open Ovrld Fault", "Overcurrent Fault", "Bad Wiring Fault", "Wrong Voltage Flt"};
-                if (status_index < sizeof(status_text) / sizeof(status_text[0])) {
-                    ESP_LOGD("ble_client", "Status: %s", status_text[status_index]);
-                    id(status).publish_state(status_text[status_index]);
+                uint8_t status_index = data[2] & 0xFF;
+                ESP_LOGD("ble_client", "Status: %u", status_index);
+                std::string status_str;
+                if (status_index < statusText.size()) {
+                    status_str = statusText[status_index];
                 } else {
-                    ESP_LOGD("ble_client", "Status: Unknown (%u)", status_index);
-                    id(status).publish_state("Unknown");
+                    status_str = "Unknown";
                 }
+                id(status).publish_state(status_str);
+
             } else {
                 ESP_LOGD("ble_client", "Data Response is too short to extract all values");
             }
@@ -122,12 +137,3 @@ sensor:
 
         // Return a dummy value to comply with the lambda return type
         return (float)length;
-
-interval:
-  - interval: 60s
-    then:
-      - ble_client.ble_write:
-          id: ble_client_1
-          service_uuid: "d973f2e0-b19e-11e2-9e96-0800200c9a66"
-          characteristic_uuid: "d973f2e2-b19e-11e2-9e96-0800200c9a66"
-          value: [0x7B, 0x22, 0x43, 0x6D, 0x64, 0x22, 0x3A, 0x20, 0x52, 0x65, 0x61, 0x64, 0x4C, 0x69, 0x76, 0x65, 0x7D]
