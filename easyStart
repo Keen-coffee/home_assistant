@@ -38,10 +38,12 @@ sensor:
 
   - platform: template
     name: "Total Faults"
+    state_class: total
     id: total_faults_sen
     
   - platform: template
     name: "Total Starts"
+    state_class: total
     id: total_starts_sen
 
   - platform: ble_client
@@ -138,11 +140,25 @@ sensor:
         // Return a dummy value to comply with the lambda return type
         return (float)length;
 
-interval:
-  - interval: 10s
-    then:
-      - ble_client.ble_write:
-          id: ble_client_1
-          service_uuid: "d973f2e0-b19e-11e2-9e96-0800200c9a66"
-          characteristic_uuid: "d973f2e2-b19e-11e2-9e96-0800200c9a66"
-          value: [0x7B, 0x22, 0x43, 0x6D, 0x64, 0x22, 0x3A, 0x20, 0x52, 0x65, 0x61, 0x64, 0x4C, 0x69, 0x76, 0x65, 0x7D]
+switch:
+  - platform: template
+    id: easystart_read
+    name: "Read Status"
+    optimistic: True
+    on_turn_on: 
+      then:
+        - esp32_ble_tracker.stop_scan:
+        - ble_client.connect: ble_client_1
+        - delay: 2s
+        - while: 
+            condition:
+              - switch.is_on: easystart_read
+            then:
+              - ble_client.ble_write:
+                  id: ble_client_1
+                  service_uuid: "d973f2e0-b19e-11e2-9e96-0800200c9a66"
+                  characteristic_uuid: "d973f2e2-b19e-11e2-9e96-0800200c9a66"
+                  value: [0x7B, 0x22, 0x43, 0x6D, 0x64, 0x22, 0x3A, 0x20, 0x52, 0x65, 0x61, 0x64, 0x4C, 0x69, 0x76, 0x65, 0x7D]
+              - delay: 10s
+        - delay: 2s
+        - ble_client.disconnect: ble_client_1
