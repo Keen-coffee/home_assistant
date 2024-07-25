@@ -144,9 +144,11 @@ switch:
   - platform: template
     id: easystart_read
     name: "Read Status"
-    optimistic: True
-    on_turn_on: 
+    turn_on_action: 
       then:
+        - switch.template.publish:
+            id: easystart_read
+            state: ON
         - esp32_ble_tracker.stop_scan:
         - ble_client.connect: ble_client_1
         - delay: 2s
@@ -162,3 +164,8 @@ switch:
               - delay: 10s
         - delay: 2s
         - ble_client.disconnect: ble_client_1
+    turn_off_action: 
+      then:
+        - switch.template.publish:
+            id: easystart_read
+            state: OFF
